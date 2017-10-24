@@ -4,6 +4,7 @@ class AliWapPay{
     public $appId;
     //私钥文件路径
     public $rsaPrivateKeyFilePath;
+    public $rsaPublicKeyFilePath;
 
     //私钥值
     public $rsaPrivateKey;
@@ -44,11 +45,11 @@ class AliWapPay{
         $this->rsaPrivateKey = $this->alipaySet['rsaPrivateKey'];
         $this->alipayrsaPublicKey = $this->alipaySet['alipayPublicKey'];
 
-        $this->apiVersion = $this->alipaySet['apiversion']?:$this->apiVersion;
-        $this->postCharset = $this->alipaySet['postcharset']?:$this->postCharset;
-        $this->format = $this->alipaySet['format']?:$this->format;
-        $this->notify_url = $this->alipaySet['notify_url'];
-        $this->return_url = $this->alipaySet['return_url'];
+        $this->apiVersion = @$this->alipaySet['apiversion']?:$this->apiVersion;
+        $this->postCharset = @$this->alipaySet['postcharset']?:$this->postCharset;
+        $this->format = @$this->alipaySet['format']?:$this->format;
+        $this->notify_url = @$this->alipaySet['notify_url'];
+        $this->return_url = @$this->alipaySet['return_url'];
     }
     /*
 	 * 获取code
@@ -215,8 +216,8 @@ class AliWapPay{
             $requestUrl .= "$sysParamKey=" . urlencode($this->characet($sysParamValue, $this->postCharset)) . "&";
         }
         $requestUrl = substr($requestUrl, 0, -1);
-        file_put_contents('../b.txt',$requestUrl);
-        file_put_contents('../c.txt',json_encode($apiParams));
+        file_put_contents('b.txt',$requestUrl);
+        file_put_contents('c.txt',json_encode($apiParams));
         //发起HTTP请求
         try {
             $resp = $this->curl($requestUrl, $apiParams);
@@ -246,7 +247,7 @@ class AliWapPay{
             return array('err'=>-1,'msg'=>"文件编码：[" . $this->fileCharset . "] 与表单提交编码：[" . $this->postCharset . "]两者不一致!");
         }
         //api版本
-        if (!$this->checkEmpty($request['apiVersion'])) {
+        if (!$this->checkEmpty(@$request['apiVersion'])) {
             $iv = $request['apiVersion'];
         } else {
             $iv = $this->apiVersion;
@@ -260,9 +261,9 @@ class AliWapPay{
         $sysParams["timestamp"] = date("Y-m-d H:i:s");
         $sysParams["alipay_sdk"] = $this->alipaySdkVersion;
         $sysParams["return_url"] = $this->return_url;
-        $sysParams["terminal_type"] = $request['terminalType'];
-        $sysParams["terminal_info"] = $request['terminalInfo'];
-        $sysParams["prod_code"] = $request['prodCode'];
+        $sysParams["terminal_type"] = @$request['terminalType'];
+        $sysParams["terminal_info"] = @$request['terminalInfo'];
+        $sysParams["prod_code"] = 'QUICK_WAP_PAY';
         $sysParams["notify_url"] = $this->notify_url;
         $sysParams["charset"] = $this->postCharset;
         //签名
@@ -359,25 +360,15 @@ class AliWapPay{
     }
     protected function getSignContent($params) {
         ksort($params);
-        $stringToBeSigned = "";
-        $i = 0;
+        $parts = array();
         foreach ($params as $k => $v) {
-            if (false === $this->checkEmpty($v) && "@" != substr($v, 0, 1)) {
-
                 // 转换成目标字符集
-                $v = $this->characet($v, $this->postCharset);
-
-                if ($i == 0) {
-                    $stringToBeSigned .= "$k" . "=" . "$v";
-                } else {
-                    $stringToBeSigned .= "&" . "$k" . "=" . "$v";
+                if (false === $this->checkEmpty($v) && "@" != substr($v, 0, 1)) {
+                    $v = $this->characet($v, $this->postCharset);
+                    $parts []= "$k" . "=" . "$v";
                 }
-                $i++;
-            }
         }
-
-        unset ($k, $v);
-        return $stringToBeSigned;
+        return implode('&', $parts);
     }
     public function generateSign($params, $signType = "RSA") {
         return $this->sign($this->getSignContent($params), $signType);
@@ -392,6 +383,7 @@ class AliWapPay{
             $priKey = file_get_contents($this->rsaPrivateKeyFilePath);
             $res = openssl_get_privatekey($priKey);
         }
+        //var_dump($res);die();
         ($res) or die('您使用的私钥格式错误，请检查RSA私钥配置');
         if ("RSA2" == $signType) {
             openssl_sign($data, $sign, $res, OPENSSL_ALGO_SHA256);
@@ -401,7 +393,8 @@ class AliWapPay{
         if(!$this->checkEmpty($this->rsaPrivateKeyFilePath)){
             openssl_free_key($res);
         }
-        $sign = base64_encode($sign);file_put_contents('base.txt',$sign);
+        $sign = base64_encode($sign);
+        file_put_contents('AliWapPay.log', $sign, FILE_APPEND|LOCK_EX);
         return $sign;
     }
     /**
@@ -410,7 +403,8 @@ class AliWapPay{
      * @return boolean
      */
     function check($arr){
-        $result = $this->rsaCheckV1($arr, $this->alipayrsaPublicKey, $this->signtype);
+        file_put_contents('AliWapPay.log', var_export($arr, True) . PHP_EOL, FILE_APPEND|LOCK_EX);
+        $result = $this->rsaCheckV1($arr, $this->rsaPublicKeyFilePath, $this->signType);
         return $result;
     }
     /** rsaCheckV1 & rsaCheckV2
@@ -422,7 +416,8 @@ class AliWapPay{
         $sign = $params['sign'];
         $params['sign_type'] = null;
         $params['sign'] = null;
-        return $this->verify($this->getSignContent($params), $sign, $rsaPublicKeyFilePath,$signType);
+var_dump($params, $sign, $signType);
+        return $this->verify($this->getSignContent($params), $sign, $rsaPublicKeyFilePath, $signType);
     }
     function rsaCheckV2($params, $rsaPublicKeyFilePath, $signType='RSA') {
         $sign = $params['sign'];
@@ -431,7 +426,9 @@ class AliWapPay{
     }
     function verify($data, $sign, $rsaPublicKeyFilePath, $signType = 'RSA') {
         $sign = str_replace(' ', "+", $sign);
-        if($this->checkEmpty($this->alipayrsaPublicKeyFile)){
+var_dump($data, $sign);
+        if($this->checkEmpty($this->rsaPublicKeyFilePath)){
+            error_log('use config pub key');
             $pubKey= $this->alipayrsaPublicKey;
             $res = "-----BEGIN PUBLIC KEY-----\n" .
                 wordwrap($pubKey, 64, "\n", true) .
