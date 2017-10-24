@@ -144,10 +144,21 @@ class AliWapPay{
     /**
      * @return 支付
      */
-    public function pay($data,$token=''){
+    public function pay($data, $token=''){
+        if(empty($data['productCode'])){
+            $data['productCode'] = 'QUICK_WAP_PAY';
+        }
+        if(empty($data['timeout_express'])){
+            $data['timeout_express'] = '5m';
+        }
+        if(empty($data['body']) && $data['subject']){
+            $data['body'] = $data['subject'];
+        }
         $ss['content']['biz_content'] = $this->json_encode_ex($data);
         $ss['apiMethodName'] = "alipay.trade.wap.pay";
-        $re = $this->pageExecute($ss,'post');print_r($re);die;
+        $re = $this->pageExecute($ss, 'post');
+        print_r($re);
+        die;
     }
     function json_encode_ex($value)
     {

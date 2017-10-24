@@ -2,4 +2,5 @@
 mock.php
 local_*.php
 *.pem
-
+*.swp
+*.bak

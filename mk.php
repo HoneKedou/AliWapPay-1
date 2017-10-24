@@ -21,10 +21,13 @@ $gatewayUrl = $env == 'prod'?'https://openapi.alipay.com/gateway.do':'https://op
 $alipayPublicKey = merge_keyfile('app_public_key.pem');
 $rsaPrivateKey = merge_keyfile('app_private_key.pem');
 file_put_contents(
-    'local_config.php', 
-    var_export(
-        compact('appId', 'gatewayUrl', 'alipayPublicKey', 'rsaPrivateKey'), 
-        true
+    'local_config.php',
+    sprintf(
+        '<?php return %s;',
+        var_export(
+            compact('appId', 'gatewayUrl', 'alipayPublicKey', 'rsaPrivateKey'),
+            true
+        )
     )
 );
 echo 'done, check local_config.php now', PHP_EOL;
