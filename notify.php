@@ -7,7 +7,7 @@ if(!empty($_GET['mock']) && file_exists('mock.php')){
     error_log('loaded mock data');
 }
 $s = $wap_pay->check($_POST);
-file_put_contents('AliWapPay.log', 'notify result is: '. var_export($s, true), FILE_APPEND|LOCK_EX);
+AliWapPay::writeLog('notify result is: '. var_export($s, true));
 if($s){
     echo 'success';
     die();

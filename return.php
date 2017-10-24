@@ -7,7 +7,7 @@ if(!empty($_GET['mock']) && file_exists('mock.php')){
     $_GET = include('mock.php');
 }
 $s = $wap_pay->check($_GET);
-file_put_contents('AliWapPay.log', 'return result is: '. var_export($s, true), FILE_APPEND|LOCK_EX);
+AliWapPay::writeLog('return result is: '. var_export($s, true));
 if($s){
     echo '验证成功';
     //订单处理

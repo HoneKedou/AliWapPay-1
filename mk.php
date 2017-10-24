@@ -7,6 +7,7 @@ function merge_keyfile($filename='app_public_key.pem'){
 }
 if(count(@$_SERVER['argv']) < 3){
     echo <<<EOT
+Usage:
     php -f mkconfig.php appId env
     appId 在应用页面选择
     env 可选项有 dev = 沙箱环境, prod = 正式环境

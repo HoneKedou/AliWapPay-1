@@ -216,8 +216,8 @@ class AliWapPay{
             $requestUrl .= "$sysParamKey=" . urlencode($this->characet($sysParamValue, $this->postCharset)) . "&";
         }
         $requestUrl = substr($requestUrl, 0, -1);
-        file_put_contents('b.txt',$requestUrl);
-        file_put_contents('c.txt',json_encode($apiParams));
+        self::writeLog($requestUrl);
+        self::writeLog(json_encode($apiParams));
         //发起HTTP请求
         try {
             $resp = $this->curl($requestUrl, $apiParams);
@@ -394,8 +394,11 @@ class AliWapPay{
             openssl_free_key($res);
         }
         $sign = base64_encode($sign);
-        file_put_contents('AliWapPay.log', $sign, FILE_APPEND|LOCK_EX);
+        self::writeLog('AliWapPay.log');
         return $sign;
+    }
+    public static function writeLog($msg){
+        file_put_contents('AliWapPay.log', $msg . PHP_EOL, FILE_APPEND|LOCK_EX);
     }
     /**
      * 验签方法
@@ -403,7 +406,7 @@ class AliWapPay{
      * @return boolean
      */
     function check($arr){
-        file_put_contents('AliWapPay.log', var_export($arr, True) . PHP_EOL, FILE_APPEND|LOCK_EX);
+        self::writeLog(var_export($arr, True));
         $result = $this->rsaCheckV1($arr, $this->rsaPublicKeyFilePath, $this->signType);
         return $result;
     }
